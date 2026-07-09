@@ -14,6 +14,22 @@ const DEFAULT_SETTINGS: JiraConfluenceConverterSettings = {
   showRibbonIcon: true,
 };
 
+function isDefaultRibbonAction(value: unknown): value is DefaultRibbonAction {
+  return value === 'jira' || value === 'confluence' || value === 'both';
+}
+
+function parseSettings(data: unknown): JiraConfluenceConverterSettings {
+  if (!data || typeof data !== 'object') {
+    return { ...DEFAULT_SETTINGS };
+  }
+
+  const saved = data as Partial<Record<keyof JiraConfluenceConverterSettings, unknown>>;
+  return {
+    defaultRibbonAction: isDefaultRibbonAction(saved.defaultRibbonAction) ? saved.defaultRibbonAction : DEFAULT_SETTINGS.defaultRibbonAction,
+    showRibbonIcon: typeof saved.showRibbonIcon === 'boolean' ? saved.showRibbonIcon : DEFAULT_SETTINGS.showRibbonIcon,
+  };
+}
+
 export default class JiraConfluenceConverterPlugin extends Plugin {
   settings: JiraConfluenceConverterSettings = DEFAULT_SETTINGS;
 
@@ -54,7 +70,7 @@ export default class JiraConfluenceConverterPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    this.settings = parseSettings(await this.loadData());
   }
 
   async saveSettings(): Promise<void> {
@@ -144,7 +160,7 @@ class JiraConfluenceConverterSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Jira Confluence Converter' });
+    new Setting(containerEl).setName('Jira Confluence Converter').setHeading();
 
     new Setting(containerEl)
       .setName('Show ribbon icon')

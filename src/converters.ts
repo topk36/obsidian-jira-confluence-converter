@@ -235,8 +235,8 @@ function confluenceInline(input: string): string {
 
   let text = escapeHtml(input);
   text = text.replace(/`([^`]+)`/g, (_match, code: string) => save(`<code>${code}</code>`));
-  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, url: string) => save(`<ac:image ac:alt=\"${escapeAttribute(alt.trim())}\"><ri:url ri:value=\"${escapeAttribute(url.trim())}\" /></ac:image>`));
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, url: string) => save(`<a href=\"${escapeAttribute(url.trim())}\">${label}</a>`));
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, url: string) => save(`<ac:image ac:alt="${escapeAttribute(alt.trim())}"><ri:url ri:value="${escapeAttribute(url.trim())}" /></ac:image>`));
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, url: string) => save(`<a href="${escapeAttribute(url.trim())}">${label}</a>`));
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   text = text.replace(/__([^_]+)__/g, '<strong>$1</strong>');
   text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
@@ -258,8 +258,8 @@ function escapeAttribute(input: string): string {
 }
 
 function confluenceCodeMacro(code: string, language: string): string {
-  const languageParam = language ? `<ac:parameter ac:name=\"language\">${escapeHtml(language)}</ac:parameter>` : '';
-  return `<ac:structured-macro ac:name=\"code\">${languageParam}<ac:plain-text-body><![CDATA[${code.replaceAll(']]>', ']]]]><![CDATA[>')}]]></ac:plain-text-body></ac:structured-macro>`;
+  const languageParam = language ? `<ac:parameter ac:name="language">${escapeHtml(language)}</ac:parameter>` : '';
+  return `<ac:structured-macro ac:name="code">${languageParam}<ac:plain-text-body><![CDATA[${code.replaceAll(']]>', ']]]]><![CDATA[>')}]]></ac:plain-text-body></ac:structured-macro>`;
 }
 
 function isTableStart(lines: string[], index: number): boolean {

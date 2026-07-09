@@ -1,6 +1,6 @@
 {
   "id": "jira-confluence-converter",
-  "name": "Jira & Confluence Converter",
+  "name": "Jira Confluence Converter",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
   "description": "Copy Markdown as Jira Wiki Markup or Confluence Storage XHTML.",

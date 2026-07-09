@@ -1,4 +1,4 @@
-# Jira & Confluence Converter
+# Jira Confluence Converter
 
 Copy Markdown from Obsidian as Atlassian-friendly markup.
 
@@ -22,9 +22,9 @@ The plugin works offline. It does not send your notes to Jira, Confluence, or an
 
 Open the command palette and run one of these commands:
 
-- `Jira & Confluence Converter: Copy selection/note as Jira Wiki Markup`
-- `Jira & Confluence Converter: Copy selection/note as Confluence Storage XHTML`
-- `Jira & Confluence Converter: Copy selection/note as Jira and Confluence bundle`
+- `Jira Confluence Converter: Copy selection/note as Jira Wiki Markup`
+- `Jira Confluence Converter: Copy selection/note as Confluence Storage XHTML`
+- `Jira Confluence Converter: Copy selection/note as Jira and Confluence bundle`
 
 ## Supported Markdown
 
@@ -54,7 +54,7 @@ The settings tab lets you:
 Once the plugin is accepted into the community plugin directory:
 
 1. Open `Settings → Community plugins`.
-2. Search for `Jira & Confluence Converter`.
+2. Search for `Jira Confluence Converter`.
 3. Install and enable the plugin.
 
 ### Manual installation
@@ -67,7 +67,7 @@ Once the plugin is accepted into the community plugin directory:
    ```
 
 3. Reload Obsidian.
-4. Enable **Jira & Confluence Converter** in `Settings → Community plugins`.
+4. Enable **Jira Confluence Converter** in `Settings → Community plugins`.
 
 ## Privacy
 

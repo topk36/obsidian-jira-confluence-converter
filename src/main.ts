@@ -144,7 +144,7 @@ class JiraConfluenceConverterSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Jira & Confluence Converter' });
+    containerEl.createEl('h2', { text: 'Jira Confluence Converter' });
 
     new Setting(containerEl)
       .setName('Show ribbon icon')

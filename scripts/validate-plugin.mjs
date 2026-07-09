@@ -19,6 +19,19 @@ if (!idPattern.test(manifest.id)) {
   errors.push('manifest.id must be lowercase kebab-case.');
 }
 
+const namePattern = /^[A-Za-z0-9 ()+-]+$/;
+if (!namePattern.test(manifest.name)) {
+  errors.push('manifest.name must use Basic Latin letters/numbers/spaces only; allowed punctuation: hyphen, plus sign, and parentheses.');
+}
+
+if (/obsidian|obsi-|sidian/i.test(manifest.name)) {
+  errors.push('manifest.name must not include Obsidian or Obsidian-like variations.');
+}
+
+if (/\bplugin\b/i.test(manifest.name)) {
+  errors.push('manifest.name must not include the word Plugin.');
+}
+
 for (const field of ['id', 'name', 'version', 'minAppVersion', 'description', 'author', 'isDesktopOnly']) {
   if (!(field in manifest)) {
     errors.push(`manifest.json is missing ${field}.`);

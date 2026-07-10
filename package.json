@@ -1,6 +1,6 @@
 {
   "name": "obsidian-jira-confluence-converter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Obsidian plugin: copy Markdown as Jira Wiki Markup or Confluence Storage XHTML.",
   "main": "main.js",
   "type": "module",

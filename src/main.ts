@@ -160,8 +160,6 @@ class JiraConfluenceConverterSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName('Jira Confluence Converter').setHeading();
-
     new Setting(containerEl)
       .setName('Show ribbon icon')
       .setDesc('Adds a left-sidebar action that converts the active selection or note.')

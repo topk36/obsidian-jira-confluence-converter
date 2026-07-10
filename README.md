@@ -2,7 +2,7 @@
 
 Copy Markdown from Obsidian as Atlassian-friendly markup.
 
-This plugin converts the current selection — or the whole active note when nothing is selected — and copies the result to your clipboard.
+This plugin converts the current selection — or the whole active note when nothing is selected — and writes the converted result to your clipboard.
 
 - **Jira Wiki Markup** for Jira Server/Data Center fields that use the wiki renderer.
 - **Confluence Storage XHTML** for Confluence pages, templates, and REST API payloads.
@@ -69,9 +69,11 @@ Once the plugin is accepted into the community plugin directory:
 3. Reload Obsidian.
 4. Enable **Jira Confluence Converter** in `Settings → Community plugins`.
 
-## Privacy
+## Privacy and clipboard access
 
 All conversion happens locally inside Obsidian. The plugin does not make network requests and does not collect telemetry.
+
+The plugin writes converted text to the system clipboard when you run a copy command. It does not read from the clipboard.
 
 ## Limitations
 

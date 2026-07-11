@@ -48,42 +48,18 @@ export function markdownToJira(markdown: string): string {
   return trimTrailingBlankLines(output).join('\n');
 }
 
-export function markdownToConfluenceStorage(markdown: string): string {
+export function markdownToConfluenceHtml(markdown: string): string {
   const lines = normalizeLines(markdown).split('\n');
   const blocks: string[] = [];
   let paragraph: string[] = [];
   let inCode = false;
   let codeLanguage = '';
   let codeLines: string[] = [];
-  let listStack: Array<'ul' | 'ol'> = [];
 
   const flushParagraph = (): void => {
     if (paragraph.length > 0) {
       blocks.push(`<p>${paragraph.map(confluenceInline).join('<br />')}</p>`);
       paragraph = [];
-    }
-  };
-
-  const closeListsTo = (level: number): void => {
-    while (listStack.length > level) {
-      const tag = listStack.pop();
-      blocks.push(`</${tag}>`);
-    }
-  };
-
-  const openListItemLevel = (level: number, tag: 'ul' | 'ol'): void => {
-    closeListsTo(level - 1);
-    if (listStack.length < level) {
-      listStack.push(tag);
-      blocks.push(`<${tag}>`);
-      return;
-    }
-
-    const current = listStack[level - 1];
-    if (current !== tag) {
-      closeListsTo(level - 1);
-      listStack.push(tag);
-      blocks.push(`<${tag}>`);
     }
   };
 
@@ -93,9 +69,8 @@ export function markdownToConfluenceStorage(markdown: string): string {
 
     if (fence) {
       flushParagraph();
-      closeListsTo(0);
       if (inCode) {
-        blocks.push(confluenceCodeMacro(codeLines.join('\n'), codeLanguage));
+        blocks.push(confluenceCodeBlock(codeLines.join('\n'), codeLanguage));
         inCode = false;
         codeLanguage = '';
         codeLines = [];
@@ -113,7 +88,6 @@ export function markdownToConfluenceStorage(markdown: string): string {
 
     if (isTableStart(lines, i)) {
       flushParagraph();
-      closeListsTo(0);
       const table = collectTable(lines, i);
       blocks.push(confluenceTable(table.rows));
       i = table.endIndex;
@@ -123,7 +97,6 @@ export function markdownToConfluenceStorage(markdown: string): string {
     const heading = line.match(/^(#{1,6})\s+(.+)$/);
     if (heading) {
       flushParagraph();
-      closeListsTo(0);
       const level = heading[1].length;
       blocks.push(`<h${level}>${confluenceInline(heading[2])}</h${level}>`);
       continue;
@@ -132,31 +105,27 @@ export function markdownToConfluenceStorage(markdown: string): string {
     const list = line.match(/^(\s*)([-*+] |\d+\.\s+)(.+)$/);
     if (list) {
       flushParagraph();
-      const level = Math.floor(list[1].replace(/\t/g, '  ').length / 2) + 1;
-      const tag = /\d+\.\s+/.test(list[2]) ? 'ol' : 'ul';
-      openListItemLevel(level, tag);
-      blocks.push(`<li>${confluenceInline(list[3])}</li>`);
+      const renderedList = collectConfluenceList(lines, i);
+      blocks.push(renderedList.html);
+      i = renderedList.endIndex;
       continue;
     }
 
     const quote = line.match(/^>\s?(.*)$/);
     if (quote) {
       flushParagraph();
-      closeListsTo(0);
       blocks.push(`<blockquote><p>${confluenceInline(quote[1])}</p></blockquote>`);
       continue;
     }
 
     if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
       flushParagraph();
-      closeListsTo(0);
       blocks.push('<hr />');
       continue;
     }
 
     if (line.trim() === '') {
       flushParagraph();
-      closeListsTo(0);
       continue;
     }
 
@@ -164,17 +133,26 @@ export function markdownToConfluenceStorage(markdown: string): string {
   }
 
   flushParagraph();
-  closeListsTo(0);
 
   if (inCode) {
-    blocks.push(confluenceCodeMacro(codeLines.join('\n'), codeLanguage));
+    blocks.push(confluenceCodeBlock(codeLines.join('\n'), codeLanguage));
   }
 
   return blocks.join('\n');
 }
 
 function normalizeLines(input: string): string {
-  return input.replace(/\r\n?/g, '\n').trimEnd();
+  const normalized = input.replace(/\r\n?/g, '\n').trimEnd();
+  const lines = normalized.split('\n');
+
+  if (lines[0]?.trim() === '---') {
+    const closingIndex = lines.findIndex((line, index) => index > 0 && line.trim() === '---');
+    if (closingIndex > 0) {
+      return lines.slice(closingIndex + 1).join('\n').replace(/^\n+/, '').trimEnd();
+    }
+  }
+
+  return normalized;
 }
 
 function jiraLine(line: string): string {
@@ -191,7 +169,7 @@ function jiraLine(line: string): string {
   if (list) {
     const level = Math.floor(list[1].replace(/\t/g, '  ').length / 2) + 1;
     const marker = /\d+\.\s+/.test(list[2]) ? '#' : '*';
-    return `${marker.repeat(level)} ${jiraInline(list[3])}`;
+    return `${marker.repeat(level)} ${jiraInline(formatTaskText(list[3]))}`;
   }
 
   const quote = line.match(/^>\s?(.*)$/);
@@ -214,9 +192,11 @@ function jiraInline(input: string): string {
     return token;
   };
 
-  let text = input.replace(/`([^`]+)`/g, (_match, code: string) => save(`{{${code}}}`));
+  let text = input.replace(/(?<!!)\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target: string, alias: string | undefined) => save((alias ?? target).trim()));
+  text = text.replace(/`([^`]+)`/g, (_match, code: string) => save(`{{${code}}}`));
   text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, url: string) => save(`!${url.trim()}|alt=${alt.trim()}!`));
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, url: string) => save(`[${label}|${url.trim()}]`));
+  text = text.replace(/~~([^~]+)~~/g, (_match, value: string) => save(`-${value}-`));
   text = text.replace(/\*\*([^*]+)\*\*/g, (_match, value: string) => save(`*${value}*`));
   text = text.replace(/__([^_]+)__/g, (_match, value: string) => save(`*${value}*`));
   text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '_$1_');
@@ -233,10 +213,12 @@ function confluenceInline(input: string): string {
     return token;
   };
 
-  let text = escapeHtml(input);
+  let text = input.replace(/(?<!!)\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target: string, alias: string | undefined) => save(escapeHtml((alias ?? target).trim())));
+  text = escapeHtml(text);
   text = text.replace(/`([^`]+)`/g, (_match, code: string) => save(`<code>${code}</code>`));
-  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, url: string) => save(`<ac:image ac:alt="${escapeAttribute(alt.trim())}"><ri:url ri:value="${escapeAttribute(url.trim())}" /></ac:image>`));
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, url: string) => save(`<img src="${escapeAttribute(url.trim())}" alt="${escapeAttribute(alt.trim())}" />`));
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, url: string) => save(`<a href="${escapeAttribute(url.trim())}">${label}</a>`));
+  text = text.replace(/~~([^~]+)~~/g, (_match, value: string) => save(`<del>${value}</del>`));
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   text = text.replace(/__([^_]+)__/g, '<strong>$1</strong>');
   text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
@@ -257,9 +239,9 @@ function escapeAttribute(input: string): string {
   return escapeHtml(input).replaceAll("'", '&#39;');
 }
 
-function confluenceCodeMacro(code: string, language: string): string {
-  const languageParam = language ? `<ac:parameter ac:name="language">${escapeHtml(language)}</ac:parameter>` : '';
-  return `<ac:structured-macro ac:name="code">${languageParam}<ac:plain-text-body><![CDATA[${code.replaceAll(']]>', ']]]]><![CDATA[>')}]]></ac:plain-text-body></ac:structured-macro>`;
+function confluenceCodeBlock(code: string, language: string): string {
+  const languageAttribute = language ? ` data-language="${escapeAttribute(language)}"` : '';
+  return `<pre><code${languageAttribute}>${escapeHtml(code)}</code></pre>`;
 }
 
 function isTableStart(lines: string[], index: number): boolean {
@@ -296,6 +278,65 @@ function confluenceTable(rows: string[][]): string {
     return `<tr>${cells}</tr>`;
   });
   return `<table><tbody>${renderedRows.join('')}</tbody></table>`;
+}
+
+interface ConfluenceListNode {
+  tag: 'ul' | 'ol';
+  content: string;
+  children: ConfluenceListNode[];
+}
+
+function collectConfluenceList(lines: string[], startIndex: number): { html: string; endIndex: number } {
+  const roots: ConfluenceListNode[] = [];
+  const stack: Array<{ level: number; node: ConfluenceListNode }> = [];
+  let index = startIndex;
+
+  while (index < lines.length) {
+    const match = lines[index].match(/^(\s*)([-*+] |\d+\.\s+)(.+)$/);
+    if (!match) {
+      break;
+    }
+
+    const level = Math.floor(match[1].replace(/\t/g, '  ').length / 2) + 1;
+    const node: ConfluenceListNode = {
+      tag: /\d+\.\s+/.test(match[2]) ? 'ol' : 'ul',
+      content: formatTaskText(match[3]),
+      children: [],
+    };
+
+    while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+      stack.pop();
+    }
+
+    const parent = stack[stack.length - 1]?.node;
+    (parent ? parent.children : roots).push(node);
+    stack.push({ level, node });
+    index += 1;
+  }
+
+  return { html: renderConfluenceListNodes(roots), endIndex: index - 1 };
+}
+
+function renderConfluenceListNodes(nodes: ConfluenceListNode[]): string {
+  let html = '';
+  let index = 0;
+
+  while (index < nodes.length) {
+    const tag = nodes[index].tag;
+    html += `<${tag}>`;
+    while (index < nodes.length && nodes[index].tag === tag) {
+      const node = nodes[index];
+      html += `<li>${confluenceInline(node.content)}${renderConfluenceListNodes(node.children)}</li>`;
+      index += 1;
+    }
+    html += `</${tag}>`;
+  }
+
+  return html;
+}
+
+function formatTaskText(input: string): string {
+  return input.replace(/^\[([ xX])\]\s+/, (_match, state: string) => (state === ' ' ? '☐ ' : '☑ '));
 }
 
 function trimTrailingBlankLines(lines: string[]): string[] {

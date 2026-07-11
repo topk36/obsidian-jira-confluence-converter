@@ -1,8 +1,8 @@
 import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { markdownToConfluenceStorage, markdownToJira } from './converters';
+import { markdownToConfluenceHtml, markdownToJira } from './converters';
 
 type Converter = (markdown: string) => string;
-type DefaultRibbonAction = 'jira' | 'confluence' | 'both';
+type DefaultRibbonAction = 'jira' | 'confluence';
 
 interface JiraConfluenceConverterSettings {
   defaultRibbonAction: DefaultRibbonAction;
@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS: JiraConfluenceConverterSettings = {
 };
 
 function isDefaultRibbonAction(value: unknown): value is DefaultRibbonAction {
-  return value === 'jira' || value === 'confluence' || value === 'both';
+  return value === 'jira' || value === 'confluence';
 }
 
 function parseSettings(data: unknown): JiraConfluenceConverterSettings {
@@ -45,18 +45,10 @@ export default class JiraConfluenceConverterPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: 'copy-as-confluence-storage',
-      name: 'Copy selection/note as Confluence Storage XHTML',
+      id: 'copy-as-confluence-rich-text',
+      name: 'Copy selection/note for Confluence',
       editorCallback: async (editor) => {
-        await this.copyConvertedMarkdown('Confluence Storage XHTML', markdownToConfluenceStorage, editor.getSelection() || editor.getValue());
-      },
-    });
-
-    this.addCommand({
-      id: 'copy-as-jira-and-confluence',
-      name: 'Copy selection/note as Jira and Confluence bundle',
-      editorCallback: async (editor) => {
-        await this.copyBothFormats(editor.getSelection() || editor.getValue());
+        await this.copyForConfluence(editor.getSelection() || editor.getValue());
       },
     });
 
@@ -93,34 +85,22 @@ export default class JiraConfluenceConverterPlugin extends Plugin {
     }
 
     if (this.settings.defaultRibbonAction === 'confluence') {
-      await this.copyConvertedMarkdown('Confluence Storage XHTML', markdownToConfluenceStorage, markdown);
-      return;
-    }
-
-    if (this.settings.defaultRibbonAction === 'both') {
-      await this.copyBothFormats(markdown);
+      await this.copyForConfluence(markdown);
       return;
     }
 
     await this.copyConvertedMarkdown('Jira Wiki Markup', markdownToJira, markdown);
   }
 
-  private async copyBothFormats(markdown: string): Promise<void> {
+  private async copyForConfluence(markdown: string): Promise<void> {
     if (!markdown.trim()) {
       new Notice('Nothing to convert.');
       return;
     }
 
-    const converted = [
-      '# Jira Wiki Markup',
-      markdownToJira(markdown),
-      '',
-      '# Confluence Storage XHTML',
-      markdownToConfluenceStorage(markdown),
-    ].join('\n');
-
-    if (await this.writeClipboard(converted)) {
-      new Notice('Copied Jira and Confluence formats.');
+    const html = markdownToConfluenceHtml(markdown);
+    if (await this.writeRichClipboard(html, markdown)) {
+      new Notice('Copied for Confluence. Paste it directly into the editor.');
     }
   }
 
@@ -143,6 +123,27 @@ export default class JiraConfluenceConverterPlugin extends Plugin {
     } catch (error) {
       console.error('Failed to write converted content to clipboard', error);
       new Notice('Failed to copy to clipboard. See console for details.');
+      return false;
+    }
+  }
+
+  private async writeRichClipboard(html: string, plainText: string): Promise<boolean> {
+    try {
+      const clipboardItem = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([plainText], { type: 'text/plain' }),
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      return true;
+    } catch (error) {
+      console.error('Failed to write rich content to clipboard', error);
+      try {
+        await navigator.clipboard.writeText(plainText);
+        new Notice('Rich clipboard is unavailable. Copied Markdown instead.');
+      } catch (fallbackError) {
+        console.error('Failed to write fallback Markdown to clipboard', fallbackError);
+        new Notice('Failed to copy to clipboard. See console for details.');
+      }
       return false;
     }
   }
@@ -179,8 +180,7 @@ class JiraConfluenceConverterSettingTab extends PluginSettingTab {
       .addDropdown((dropdown) =>
         dropdown
           .addOption('jira', 'Jira Wiki Markup')
-          .addOption('confluence', 'Confluence Storage XHTML')
-          .addOption('both', 'Both formats')
+          .addOption('confluence', 'Confluence rich text')
           .setValue(this.plugin.settings.defaultRibbonAction)
           .onChange(async (value) => {
             this.plugin.settings.defaultRibbonAction = value as DefaultRibbonAction;

@@ -1,50 +1,23 @@
 import * as assert from 'node:assert/strict';
-import { markdownToConfluenceStorage, markdownToJira } from '../src/converters';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { markdownToConfluenceHtml, markdownToJira } from '../src/converters';
 
-const sample = `# Title
+const fixturesRoot = join(process.cwd(), 'test', 'fixtures');
+const fixtureNames = readdirSync(fixturesRoot, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
 
-Hello **bold** and _italic_ with [link](https://example.com).
+for (const fixtureName of fixtureNames) {
+  const fixtureDir = join(fixturesRoot, fixtureName);
+  const input = readFileSync(join(fixtureDir, 'input.md'), 'utf8');
+  const expectedJira = readFileSync(join(fixtureDir, 'jira.txt'), 'utf8').trimEnd();
+  const expectedConfluence = readFileSync(join(fixtureDir, 'confluence.html'), 'utf8').trimEnd();
 
-- item one
-  - nested item
-1. first
+  assert.equal(markdownToJira(input), expectedJira, `${fixtureName}: Jira output`);
+  assert.equal(markdownToConfluenceHtml(input), expectedConfluence, `${fixtureName}: Confluence output`);
+  assert.doesNotMatch(markdownToConfluenceHtml(input), /<ac:|<ri:/, `${fixtureName}: Confluence output must be pasteable HTML`);
+}
 
-> quoted
-
-\`inline\`
-
-\`\`\`ts
-const value = 1 < 2;
-\`\`\`
-
-| Name | Value |
-| --- | --- |
-| A | **B** |
-`;
-
-const jira = markdownToJira(sample);
-assert.match(jira, /^h1\. Title/m);
-assert.match(jira, /Hello \*bold\* and _italic_ with \[link\|https:\/\/example\.com\]\./);
-assert.match(jira, /^\* item one/m);
-assert.match(jira, /^\*\* nested item/m);
-assert.match(jira, /^# first/m);
-assert.match(jira, /^bq\. quoted/m);
-assert.match(jira, /\{\{inline\}\}/);
-assert.match(jira, /\{code:language=ts\}\nconst value = 1 < 2;\n\{code\}/);
-assert.match(jira, /\|\|Name\|\|Value\|\|/);
-assert.match(jira, /\|A\|\*B\*\|/);
-
-const confluence = markdownToConfluenceStorage(sample);
-assert.match(confluence, /<h1>Title<\/h1>/);
-assert.match(confluence, /<strong>bold<\/strong>/);
-assert.match(confluence, /<em>italic<\/em>/);
-assert.match(confluence, /<a href=\"https:\/\/example\.com\">link<\/a>/);
-assert.match(confluence, /<ul>\n<li>item one<\/li>\n<ul>\n<li>nested item<\/li>\n<\/ul>\n<\/ul>/);
-assert.match(confluence, /<ol>\n<li>first<\/li>\n<\/ol>/);
-assert.match(confluence, /<blockquote><p>quoted<\/p><\/blockquote>/);
-assert.match(confluence, /<code>inline<\/code>/);
-assert.match(confluence, /<ac:parameter ac:name=\"language\">ts<\/ac:parameter>/);
-assert.match(confluence, /const value = 1 < 2;/);
-assert.match(confluence, /<table><tbody><tr><th>Name<\/th><th>Value<\/th><\/tr><tr><td>A<\/td><td><strong>B<\/strong><\/td><\/tr><\/tbody><\/table>/);
-
-console.log('converter tests passed');
+console.log(`converter fixture tests passed (${fixtureNames.length} fixtures)`);

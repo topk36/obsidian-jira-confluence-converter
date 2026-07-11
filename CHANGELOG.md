@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0
+
+- Replace Confluence Storage XHTML clipboard output with rich HTML that can be pasted directly into the Confluence editor.
+- Add both `text/html` and `text/plain` clipboard representations for Confluence copies.
+- Replace Confluence storage macros with standard HTML elements for code blocks and images.
+- Remove the combined Jira and Confluence output option and command.
+- Migrate previously saved `both` ribbon settings back to the default Jira action.
+- Render valid nested list HTML for Confluence.
+- Convert Markdown task lists to portable `☐` and `☑` markers.
+- Convert Markdown strikethrough to Jira and Confluence equivalents.
+- Omit YAML frontmatter from exported content by default.
+- Convert Obsidian wikilinks to their display text.
+- Move converter coverage to fixture-based tests.
+
 ## 0.1.1
 
 - Fix Obsidian community plugin review issues.

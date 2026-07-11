@@ -1,0 +1,3 @@
+* ☐ Open task
+* ☑ Completed task
+** ☑ Nested completed task

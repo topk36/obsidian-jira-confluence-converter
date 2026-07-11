@@ -1,7 +1,7 @@
 {
   "id": "jira-confluence-converter",
   "name": "Jira Confluence Converter",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "minAppVersion": "1.5.0",
   "description": "Copy Markdown as Jira Wiki Markup or rich text for direct pasting into Confluence.",
   "author": "Ildar Kamalov",

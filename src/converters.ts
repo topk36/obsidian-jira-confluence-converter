@@ -36,6 +36,17 @@ export function markdownToJira(markdown: string): string {
       continue;
     }
 
+    if (isHorizontalRule(line)) {
+      if (output.length > 0 && output[output.length - 1] !== '') {
+        output.push('');
+      }
+      output.push('----');
+      if (i + 1 < lines.length && lines[i + 1].trim() !== '') {
+        output.push('');
+      }
+      continue;
+    }
+
     output.push(jiraLine(line));
   }
 
@@ -153,6 +164,10 @@ function normalizeLines(input: string): string {
   }
 
   return normalized;
+}
+
+function isHorizontalRule(line: string): boolean {
+  return /^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line);
 }
 
 function jiraLine(line: string): string {

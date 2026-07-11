@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Ensure Jira horizontal rules are separated from preceding lists so they render as standalone blocks.
+- Add a regression fixture covering nested list items followed immediately by a horizontal rule.
+
 ## 0.2.0
 
 - Replace Confluence Storage XHTML clipboard output with rich HTML that can be pasted directly into the Confluence editor.

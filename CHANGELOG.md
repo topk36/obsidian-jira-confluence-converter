@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+- Fix nested inline formatting in Jira Wiki Markup that could cause field values to be lost during conversion.
+- Preserve nested inline code and field identifiers in Confluence HTML output.
+- Add regression coverage for formatted tables and inline code.
+
 ## 0.2.1
 
 - Ensure Jira horizontal rules are separated from preceding lists so they render as standalone blocks.

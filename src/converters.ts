@@ -217,7 +217,7 @@ function jiraInline(input: string): string {
   text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '_$1_');
   text = text.replace(/(?<!_)_([^_]+)_(?!_)/g, '_$1_');
 
-  return placeholders.reduce((value, replacement, index) => value.replaceAll(`\u0000${index}\u0000`, replacement), text);
+  return placeholders.reduceRight((value, replacement, index) => value.replaceAll(`\u0000${index}\u0000`, replacement), text);
 }
 
 function confluenceInline(input: string): string {
@@ -234,12 +234,12 @@ function confluenceInline(input: string): string {
   text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt: string, url: string) => save(`<img src="${escapeAttribute(url.trim())}" alt="${escapeAttribute(alt.trim())}" />`));
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label: string, url: string) => save(`<a href="${escapeAttribute(url.trim())}">${label}</a>`));
   text = text.replace(/~~([^~]+)~~/g, (_match, value: string) => save(`<del>${value}</del>`));
-  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  text = text.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  text = text.replace(/\*\*([^*]+)\*\*/g, (_match, value: string) => save(`<strong>${value}</strong>`));
+  text = text.replace(/__([^_]+)__/g, (_match, value: string) => save(`<strong>${value}</strong>`));
   text = text.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
   text = text.replace(/(?<!_)_([^_]+)_(?!_)/g, '<em>$1</em>');
 
-  return placeholders.reduce((value, replacement, index) => value.replaceAll(`\u0000${index}\u0000`, replacement), text);
+  return placeholders.reduceRight((value, replacement, index) => value.replaceAll(`\u0000${index}\u0000`, replacement), text);
 }
 
 function escapeHtml(input: string): string {
